@@ -1,0 +1,32 @@
+{
+	"name": "Binary1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "HttpServer1",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_current": {
+				"type": "string"
+			},
+			"p_pages": {
+				"type": "string"
+			},
+			"p_xyzpage": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation",
+				"relativeUrl": {
+					"value": "@concat('v2/everything?q=technology&from=',formatDateTime(dataset().p_current,'yyyy-MM-dd'),'&to=', formatDateTime(utcNow(), 'yyyy-MM-dd'),'&page=',dataset().p_pages,'&pageSize=50&apiKey=','2c5d52e6c83b468fbd97381e58b61eb2')",
+					"type": "Expression"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

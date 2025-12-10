@@ -1,0 +1,9 @@
+{
+	"name": "arapi-df",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "d5f77b60-26bd-45d1-afdb-f48ec2f07d6a",
+		"tenantId": "53b2db99-d2d5-477f-97d1-9cae174b55d2"
+	}
+}

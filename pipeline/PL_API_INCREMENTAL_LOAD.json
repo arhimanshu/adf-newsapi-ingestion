@@ -1,0 +1,356 @@
+{
+	"name": "PL_API_INCREMENTAL_LOAD",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup_GetWatermark",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT last_run_time FROM dbo.control_table WHERE table_name='todos';\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "Lookup_GetWatermark",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set_lastRun",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lookup_GetWatermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "lastRun",
+					"value": {
+						"value": "@activity('Lookup_GetWatermark').output.firstRow.last_run_time\r\n",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_currentMax",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set_lastRun",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "currentMax",
+					"value": {
+						"value": "@variables('lastRun')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_hasMore",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set_currentMax",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "hasMore",
+					"value": {
+						"value": "true",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_page",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set_hasMore",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "page",
+					"value": {
+						"value": "1",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Until1",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "Set_page",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('hasMore'),false)",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Web_CallAPI_page",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": {
+									"value": "@concat('https://newsapi.org/v2/everything?q=technology&from=',formatDateTime(variables('currentMax'),'yyyy-MM-dd'),'&to=', formatDateTime(utcNow(), 'yyyy-MM-dd'),'&page=',variables('page'),'&pageSize=50&apiKey=','2c5d52e6c83b468fbd97381e58b61eb2')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set_currentMax_insideLoop",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy data2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "currentMax",
+								"value": {
+									"value": "@json(activity('Web_CallAPI_page').output.Response).max_updated_at\n",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set_page_next",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set_currentMax_insideLoop",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "page",
+								"value": {
+									"value": "@activity('Web_CallAPI_page').output.next_page\n",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set_hasMore_next",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set_page_next",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "hasMore",
+								"value": {
+									"value": "@not(equals(activity('Web_CallAPI_page').output.next_page, null))\n",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Web_GetToken",
+							"type": "WebActivity",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "POST",
+								"headers": {
+									"Content-Type": "application/json",
+									"x-client-id": "myClient123",
+									"x-client-secret": "mySecret456"
+								},
+								"url": "https://mocki.io/v1/39e1d5ae-72a7-4d74-b3e5-163597f7e2c1",
+								"body": {
+									"username": "himanshu_api",
+									"password": "Pass@123",
+									"grant_type": "password"
+								}
+							}
+						},
+						{
+							"name": "Copy data2",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Web_CallAPI_page",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "HttpReadSettings",
+										"requestMethod": "GET"
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "Binary1",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_current": {
+											"value": "@variables('currentMax')",
+											"type": "Expression"
+										},
+										"p_pages": {
+											"value": "@variables('page')",
+											"type": "Expression"
+										},
+										"p_xyzpage": {
+											"value": "@variables('page')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "Binary2",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			}
+		],
+		"variables": {
+			"lastRun": {
+				"type": "String"
+			},
+			"token": {
+				"type": "String"
+			},
+			"page": {
+				"type": "String"
+			},
+			"hasMore": {
+				"type": "String"
+			},
+			"currentMax": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-11-28T00:17:43Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

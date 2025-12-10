@@ -1,0 +1,40 @@
+{
+	"name": "Lookup_GetWatermark",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "table_name",
+				"type": "varchar"
+			},
+			{
+				"name": "last_run_time",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "last_success_time",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "status",
+				"type": "varchar"
+			},
+			{
+				"name": "remarks",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "control_table"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
