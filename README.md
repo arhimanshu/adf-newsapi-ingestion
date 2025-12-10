@@ -118,13 +118,3 @@ README.md
 ```
 
 ---
-
-## 🎯 Why This Project Is Valuable
-This project demonstrates practical skills required in real data engineering roles:
-
-- Incremental ingestion from API sources  
-- Metadata-driven design (control table pattern)  
-- Handling pagination & API limitations  
-- Storing structured raw data in ADLS  
-- ADF branching, Git integration, and deployment workflow  
-- Understanding of enterprise CI/CD patterns  
