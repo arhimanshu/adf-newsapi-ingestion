@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Lookup_GetWatermark",
+				"name": "Lookup_GetWatermarks",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -32,7 +32,7 @@
 				"type": "SetVariable",
 				"dependsOn": [
 					{
-						"activity": "Lookup_GetWatermark",
+						"activity": "Lookup_GetWatermarks",
 						"dependencyConditions": [
 							"Succeeded"
 						]
